@@ -10,28 +10,37 @@ go get -u github.com/songgao/go.pipeline
 [http://godoc.org/github.com/songgao/go.pipeline](http://godoc.org/github.com/songgao/go.pipeline)
 
 ## Examples
-Following code is equal to `find ~/src | egrep --color=always -e "\\.go$"`, plus a counter pre-pended to each line.
+
+### Execute a single unix command
+```go
+package main
+
+import "github.com/songgao/go.pipeline"
+
+func main() {
+	pipeline.StartPipelineWithCommand("uname", "-a").PrintAll()
+}
+```
+
+### Chain multiple unix commands
+Following code is equal to `ls -h -l /bin | egrep --color=always -e "\\ *[0-9.]*M\\ *"`, plus a counter pre-pended to each line.
 ```go
 package main
 
 import (
+	"fmt"
 	"github.com/songgao/go.pipeline"
-	"os"
-    "fmt"
 )
 
 func main() {
-	p := pipeline.NewPipeline()
-
 	counter := 0
-    p.
-    ChainCommand("find", os.Getenv("HOME")+"/src/").
-    ChainCommand("egrep", "--color=always", "-e", "\\.go$").
-    ChainLineProcessor(func(in string) string {
+
+	pipeline.NewPipeline().
+		ChainCommand("ls", "-h", "-l", "/bin").ChainCommand("egrep", "--color=always", "-e", `\ *[0-9.]*M\ *`).
+		ChainLineProcessor(func(in string) string {
 		counter++
-		return fmt.Sprintf("%d\t%s", counter, in)
-	}, nil).
-    PrintAll()
+		return fmt.Sprintf("%d:\t%s", counter, in)
+	}, nil).PrintAll()
 }
 ```
 An equivalent shorter version is:
@@ -39,24 +48,25 @@ An equivalent shorter version is:
 package main
 
 import (
+	"fmt"
 	"github.com/songgao/go.pipeline"
-	"os"
-    "fmt"
 )
 
 func main() {
 	counter := 0
 
 	pipeline.NewPipeline().
-    C("find", os.Getenv("HOME")+"/src/").
-    C("egrep", "--color=always", "-e", "\\.go$").
-    L(func(in string) string {
+		C("ls", "-h", "-l", "/bin").C("egrep", "--color=always", "-e", `\ *[0-9.]*M\ *`).
+		L(func(in string) string {
 		counter++
-		return fmt.Sprintf("%d\t%s", counter, in)
-	}, nil).
-    P()
+		return fmt.Sprintf("%d:\t%s", counter, in)
+	}, nil).P()
 }
 ```
+
+### Colorize `go build` output
+Check out `colorgo` project: [https://github.com/songgao/colorgo](https://github.com/songgao/colorgo)
+
 ## TODO
 * 2>&1, tee, etc.
 * package doc
