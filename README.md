@@ -1,6 +1,11 @@
 # go.pipeline
 go.pipeline is a utility library that imitates unix pipeline. It simplifies chaining unix commands (and other stuff) in Go.
 
+## Installation
+```
+go get -u github.com/songgao/go.pipeline
+```
+
 ## Documentation
 [http://godoc.org/github.com/songgao/go.pipeline](http://godoc.org/github.com/songgao/go.pipeline)
 
