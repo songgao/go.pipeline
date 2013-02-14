@@ -6,7 +6,7 @@ go.pipeline is a utility library that imitates unix pipeline. It simplifies chai
 
 ## Examples
 Following code is equal to `find ~/src | egrep --color=always -e "\\.go$"`, plus a counter pre-pended to each line.
-```
+```go
 package main
 
 import (
@@ -30,7 +30,7 @@ func main() {
 }
 ```
 A equivalent shorter version is:
-```
+```go
 package main
 
 import (
