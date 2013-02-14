@@ -34,7 +34,7 @@ func main() {
     PrintAll()
 }
 ```
-A equivalent shorter version is:
+An equivalent shorter version is:
 ```go
 package main
 
