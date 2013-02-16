@@ -15,3 +15,8 @@ type LineProcessor func(string) string
 const (
 	_UNITSIZE = 256
 )
+
+const (
+	STDOUT = 1
+	STDERR = 2
+)

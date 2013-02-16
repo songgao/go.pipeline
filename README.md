@@ -68,6 +68,7 @@ func main() {
 Check out `colorgo` project: [https://github.com/songgao/colorgo](https://github.com/songgao/colorgo)
 
 ## TODO
-* 2>&1, tee, etc.
+* tee, etc.
+* custom Station
 * package doc
 * more organized README.md

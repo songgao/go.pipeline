@@ -98,6 +98,18 @@ func (p *Pipeline) ChainLineProcessor(stdoutProcessor LineProcessor, stderrProce
 	return r
 }
 
+func (p *Pipeline) RedirectTo(to int) *Pipeline {
+	if !p.chainable {
+		panic("pipeline is not chainable")
+	}
+	out, err := make(chan string, 4), make(chan string, 4)
+	r := &Pipeline{stdout: out, stderr: err, chainable: true}
+	station := newRedirectStation(to)
+	station.SetStreams(p.stdout, p.stderr, out, err)
+	station.Start()
+	return r
+}
+
 // Seal the pipeline (prevent from chaining new stations into the pipeline) and print current output streams of the pipeline to /dev/stdout and /dev/stderr respectively
 func (p *Pipeline) PrintAll() {
 	if !p.chainable {
@@ -150,4 +162,9 @@ func (p *Pipeline) L(stdoutProcessor LineProcessor, stderrProcessor LineProcesso
 // Short for PrintAll()
 func (p *Pipeline) P() {
 	p.PrintAll()
+}
+
+// Short for RedirectTo()
+func (p *Pipeline) R(to int) *Pipeline {
+	return p.RedirectTo(to)
 }
