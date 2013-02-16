@@ -54,11 +54,11 @@ func (c *command) Start() {
 	// Read from stdout in input, and write to the stdin of cmd
 	go func() {
 		ok := true
-		var line string
+		var str string
 		for ok {
-			line, ok = <-c.in_stdout
+			str, ok = <-c.in_stdout
 			if ok {
-				io.WriteString(stdin, line)
+				io.WriteString(stdin, str)
 			}
 		}
 		stdin.Close()
@@ -67,11 +67,11 @@ func (c *command) Start() {
 	// Read from stderr in input, and directly write to stderr in output
 	go func() {
 		ok := true
-		var line string
+		var str string
 		for ok {
-			line, ok = <-c.in_stderr
+			str, ok = <-c.in_stderr
 			if ok {
-				c.out_stderr <- line
+				c.out_stderr <- str
 			}
 		}
 		// not the only one writting to out_stderr; need to wait before close the channel

@@ -39,6 +39,7 @@ func (l *lineProcessorStation) SetStreams(inout <-chan string, inerr <-chan stri
 
 func (l *lineProcessorStation) Start() {
 	h := func(processor LineProcessor, in <-chan string, out chan<- string) {
+		// tokens in "in" are arbitary strings. io.Pipe piles them together thus later can be read line by line
 		reader, writer := io.Pipe()
 		bufReader := bufio.NewReader(reader)
 

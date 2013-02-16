@@ -107,11 +107,11 @@ func (p *Pipeline) PrintAll() {
 	var wg sync.WaitGroup
 	h := func(ch_in <-chan string, out *os.File) {
 		ok := true
-		var line string
+		var str string
 		for ok {
-			line, ok = <-ch_in
+			str, ok = <-ch_in
 			if ok {
-				out.WriteString(line)
+				out.WriteString(str)
 			}
 		}
 		out.Close()
