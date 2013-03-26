@@ -13,12 +13,14 @@ type command struct {
 	in_stderr  <-chan string
 	out_stdout chan<- string
 	out_stderr chan<- string
+	err        *error
 
 	cmd *exec.Cmd
 }
 
-func newCommand(name string, args ...interface{}) Station {
+func newCommand(name string, err *error, args ...interface{}) Station {
 	c := new(command)
+	c.err = err
 	if len(args) == 0 {
 		c.cmd = exec.Command(name)
 	} else {
@@ -49,7 +51,7 @@ func (c *command) Start() {
 	buferr := bufio.NewReader(stderr)
 
 	var wg sync.WaitGroup
-	wg.Add(2) // two routines writting to out_stderr
+	wg.Add(3) // two routines writting to out_stderr; and exit code watcher
 
 	// Read from stdout in input, and write to the stdin of cmd
 	go func() {
@@ -114,4 +116,12 @@ func (c *command) Start() {
 	}()
 
 	c.cmd.Start()
+
+	go func() {
+		err := c.cmd.Wait()
+		if err != nil {
+			(*c.err) = err
+		}
+		wg.Done()
+	}()
 }

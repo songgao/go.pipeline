@@ -12,6 +12,8 @@ type Pipeline struct {
 	stdout    <-chan string
 	stderr    <-chan string
 	chainable bool
+	err       error
+	prev      *Pipeline
 }
 
 // Create a new pipeline that has not input streams
@@ -25,19 +27,19 @@ func NewPipeline() *Pipeline {
 
 // Create a new pipeline with input streams stdout and stderr
 func StartPipelineWithStreams(stdout <-chan string, stderr <-chan string) *Pipeline {
-	return &Pipeline{stdout: stdout, stderr: stderr, chainable: true}
+	return &Pipeline{stdout: stdout, stderr: stderr, chainable: true, prev: nil}
 }
 
 // Create a new pipeline whose input streams are from a command output
 func StartPipelineWithCommand(name string, arg ...interface{}) *Pipeline {
 	out, err := make(chan string, 4), make(chan string, 4)
-	p := &Pipeline{stdout: out, stderr: err, chainable: true}
+	p := &Pipeline{stdout: out, stderr: err, chainable: true, prev: nil}
 	ch1, ch2 := make(chan string), make(chan string)
 	var station Station
 	if len(arg) == 0 {
-		station = newCommand(name)
+		station = newCommand(name, &p.err)
 	} else {
-		station = newCommand(name, arg...)
+		station = newCommand(name, &p.err, arg...)
 	}
 	station.SetStreams(ch1, ch2, out, err)
 	close(ch1)
@@ -49,7 +51,7 @@ func StartPipelineWithCommand(name string, arg ...interface{}) *Pipeline {
 // Create a new pipeline whose input streams are /dev/stdin and /dev/stdout
 func StartPipelineWithStdin() *Pipeline {
 	out, err := make(chan string, 4), make(chan string, 4)
-	p := &Pipeline{stdout: out, stderr: err, chainable: true}
+	p := &Pipeline{stdout: out, stderr: err, chainable: true, prev: nil}
 	close(err)
 	go func() {
 		bufin := bufio.NewReader(os.Stdin)
@@ -73,12 +75,12 @@ func (p *Pipeline) ChainCommand(name string, arg ...interface{}) *Pipeline {
 		panic("pipeline is not chainable")
 	}
 	out, err := make(chan string, 4), make(chan string, 4)
-	r := &Pipeline{stdout: out, stderr: err, chainable: true}
+	r := &Pipeline{stdout: out, stderr: err, chainable: true, prev: p}
 	var station Station
 	if len(arg) == 0 {
-		station = newCommand(name)
+		station = newCommand(name, &p.err)
 	} else {
-		station = newCommand(name, arg...)
+		station = newCommand(name, &p.err, arg...)
 	}
 	station.SetStreams(p.stdout, p.stderr, out, err)
 	station.Start()
@@ -91,7 +93,7 @@ func (p *Pipeline) ChainLineProcessor(stdoutProcessor LineProcessor, stderrProce
 		panic("pipeline is not chainable")
 	}
 	out, err := make(chan string, 4), make(chan string, 4)
-	r := &Pipeline{stdout: out, stderr: err, chainable: true}
+	r := &Pipeline{stdout: out, stderr: err, chainable: true, prev: p}
 	station := newLineProcessorStation(stdoutProcessor, stderrProcessor)
 	station.SetStreams(p.stdout, p.stderr, out, err)
 	station.Start()
@@ -103,7 +105,7 @@ func (p *Pipeline) RedirectTo(to int) *Pipeline {
 		panic("pipeline is not chainable")
 	}
 	out, err := make(chan string, 4), make(chan string, 4)
-	r := &Pipeline{stdout: out, stderr: err, chainable: true}
+	r := &Pipeline{stdout: out, stderr: err, chainable: true, prev: p}
 	station := newRedirectStation(to)
 	station.SetStreams(p.stdout, p.stderr, out, err)
 	station.Start()
@@ -126,7 +128,6 @@ func (p *Pipeline) PrintAll() {
 				out.WriteString(str)
 			}
 		}
-		out.Close()
 		wg.Done()
 	}
 	wg.Add(2)
@@ -141,6 +142,16 @@ func (p *Pipeline) GetOutputStreams() (stdout <-chan string, stderr <-chan strin
 	stderr = p.stderr
 	p.chainable = false
 	return
+}
+
+func (p *Pipeline) Errors() []error {
+	var errs []error
+	for it := p; it != nil; it = it.prev {
+		if it.err != nil {
+			errs = append(errs, p.err)
+		}
+	}
+	return errs
 }
 
 // Short for ChainCommand()
